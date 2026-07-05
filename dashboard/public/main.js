@@ -67,24 +67,48 @@ function renderRankingChart(trends) {
   });
 }
 
+function colorForValue(v, min, max) {
+  const stops = [
+    { p: 0, c: [250, 204, 21] },   // 黃：低價
+    { p: 1 / 3, c: [22, 163, 74] },  // 綠
+    { p: 2 / 3, c: [37, 99, 235] },  // 藍
+    { p: 1, c: [124, 58, 237] },   // 紫：高價
+  ];
+  const t = max > min ? (v - min) / (max - min) : 1;
+  const tt = Math.max(0, Math.min(1, t));
+  let i = 0;
+  while (i < stops.length - 2 && tt > stops[i + 1].p) i++;
+  const a = stops[i], b = stops[i + 1];
+  const localT = (tt - a.p) / (b.p - a.p || 1);
+  const rgb = a.c.map((v0, idx) => Math.round(v0 + (b.c[idx] - v0) * localT));
+  return `rgb(${rgb.join(',')})`;
+}
+
 function renderDistrictSection(trends) {
   const districts = Object.keys(trends.districts).sort();
-  const defaultSelected = new Set(trends.latest_ranking.slice(0, 3).map(r => r.district));
+  const selected = new Set(trends.latest_ranking.slice(0, 3).map(r => r.district));
+  const priceByDistrict = new Map(trends.latest_ranking.map(r => [r.district, r]));
+  const prices = trends.latest_ranking.map(r => r.median_unit_price_ping);
+  const priceMin = Math.min(...prices);
+  const priceMax = Math.max(...prices);
 
   const picker = document.getElementById('district-picker');
   const canvas = document.getElementById('districtChart');
+  const svg = document.getElementById('districtMap');
+  const tooltip = document.getElementById('map-tooltip');
+  const mapWrap = document.querySelector('.map-wrap');
   let chart = null;
 
   const labels = trends.city_overview.map(r => r.month);
 
   function buildChart() {
-    const selected = districts.filter(d => defaultSelected.has(d));
+    const selectedList = districts.filter(d => selected.has(d));
     if (chart) chart.destroy();
     chart = new Chart(canvas, {
       type: 'line',
       data: {
         labels,
-        datasets: selected.map((d, i) => {
+        datasets: selectedList.map((d, i) => {
           const byMonth = new Map(trends.districts[d].map(r => [r.month, r.median_unit_price_ping]));
           return {
             label: d,
@@ -108,23 +132,63 @@ function renderDistrictSection(trends) {
     });
   }
 
-  picker.innerHTML = districts.map(d =>
-    `<button class="district-chip${defaultSelected.has(d) ? ' active' : ''}" data-district="${d}">${d}</button>`
-  ).join('');
+  function syncUI() {
+    picker.querySelectorAll('.district-chip').forEach(btn => {
+      btn.classList.toggle('active', selected.has(btn.dataset.district));
+    });
+    svg.querySelectorAll('.map-district').forEach(path => {
+      path.classList.toggle('selected', selected.has(path.dataset.district));
+    });
+  }
 
+  function toggleDistrict(d) {
+    if (selected.has(d)) {
+      selected.delete(d);
+    } else {
+      selected.add(d);
+    }
+    syncUI();
+    buildChart();
+  }
+
+  picker.innerHTML = districts.map(d =>
+    `<button class="district-chip${selected.has(d) ? ' active' : ''}" data-district="${d}">${d}</button>`
+  ).join('');
   picker.addEventListener('click', (e) => {
     const btn = e.target.closest('.district-chip');
     if (!btn) return;
-    const d = btn.dataset.district;
-    if (defaultSelected.has(d)) {
-      defaultSelected.delete(d);
-      btn.classList.remove('active');
-    } else {
-      defaultSelected.add(d);
-      btn.classList.add('active');
-    }
-    buildChart();
+    toggleDistrict(btn.dataset.district);
   });
+
+  svg.setAttribute('viewBox', TAICHUNG_MAP_VIEWBOX);
+  svg.innerHTML = Object.entries(TAICHUNG_DISTRICT_PATHS).map(([name, d]) => {
+    const stat = priceByDistrict.get(name);
+    const fill = stat ? colorForValue(stat.median_unit_price_ping, priceMin, priceMax) : null;
+    const noData = !stat;
+    return `<path class="map-district${noData ? ' no-data' : ''}${selected.has(name) ? ' selected' : ''}"
+      data-district="${name}" d="${d}" ${fill ? `fill="${fill}"` : ''}></path>`;
+  }).join('');
+
+  svg.querySelectorAll('.map-district').forEach(path => {
+    const name = path.dataset.district;
+    const stat = priceByDistrict.get(name);
+    path.addEventListener('click', () => {
+      if (stat) toggleDistrict(name);
+    });
+    path.addEventListener('mousemove', (e) => {
+      const rect = mapWrap.getBoundingClientRect();
+      tooltip.style.left = `${e.clientX - rect.left}px`;
+      tooltip.style.top = `${e.clientY - rect.top - 8}px`;
+      tooltip.innerHTML = stat
+        ? `<div class="name">${name}</div><div class="price">${formatMoney(stat.median_unit_price_ping)} 元/坪</div><div>近三個月 ${stat.transaction_count} 筆</div>`
+        : `<div class="name">${name}</div><div>近三個月交易筆數不足</div>`;
+      tooltip.classList.add('visible');
+    });
+    path.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
+  });
+
+  document.getElementById('legend-min').textContent = `${(priceMin / 10000).toFixed(1)}萬`;
+  document.getElementById('legend-max').textContent = `${(priceMax / 10000).toFixed(1)}萬`;
 
   buildChart();
 }

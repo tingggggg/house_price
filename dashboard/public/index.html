@@ -6,6 +6,7 @@
 <title>台中市房價趨勢儀表板</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="taichung-districts.js"></script>
 </head>
 <body>
   <header>
@@ -26,9 +27,24 @@
   </section>
 
   <section class="panel">
-    <h2>行政區趨勢比較</h2>
-    <div class="district-picker" id="district-picker"></div>
-    <canvas id="districtChart" height="100"></canvas>
+    <h2>行政區趨勢比較與房價 Heatmap</h2>
+    <p class="map-hint">點選地圖上的行政區，或下方標籤，可加入 / 移除趨勢比較（灰色代表近三個月交易筆數不足 5 筆，資料不穩定）</p>
+    <div class="district-layout">
+      <div class="map-wrap">
+        <svg id="districtMap" role="img" aria-label="台中市房價 heatmap"></svg>
+        <div class="map-tooltip" id="map-tooltip"></div>
+        <div class="map-legend">
+          <span class="legend-label" id="legend-min"></span>
+          <div class="legend-bar"></div>
+          <span class="legend-label" id="legend-max"></span>
+          <span class="legend-unit">元/坪（近三個月中位數）</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <div class="district-picker" id="district-picker"></div>
+        <canvas id="districtChart" height="260"></canvas>
+      </div>
+    </div>
   </section>
 
   <footer>
