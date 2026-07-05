@@ -1,0 +1,12 @@
+.git
+.gitignore
+README.md
+
+**/node_modules
+.venv
+**/__pycache__
+**/*.pyc
+
+data/raw
+data/processed/*.db
+data/pipeline_full.log

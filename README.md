@@ -22,18 +22,21 @@ house_price/
 │   ├── downloader.py       # 下載各季別 zip 並解壓 CSV
 │   ├── etl.py               # 清洗正規化，寫入 SQLite
 │   ├── aggregate.py         # 依行政區/月份彙整，輸出 trends.json
-│   └── run_pipeline.py      # 一鍵執行：下載 -> 清洗 -> 彙整
+│   ├── run_pipeline.py      # 一鍵執行：下載 -> 清洗 -> 彙整
+│   └── Dockerfile
 ├── data/
 │   ├── raw/                 # 下載的原始 CSV（依季別分資料夾）
 │   └── processed/
 │       ├── house_price.db   # SQLite 資料庫
 │       └── trends.json      # 給前端使用的彙整資料
-└── dashboard/                # Node.js 視覺化儀表板
-    ├── server.js
-    └── public/
-        ├── index.html
-        ├── main.js
-        └── style.css
+├── dashboard/                # Node.js 視覺化儀表板
+│   ├── server.js
+│   ├── Dockerfile
+│   └── public/
+│       ├── index.html
+│       ├── main.js
+│       └── style.css
+└── docker-compose.yml
 ```
 
 ## 使用方式
@@ -65,6 +68,23 @@ npm start
 - 全市房價趨勢折線圖（每坪單價）
 - 各行政區最新月份房價排行
 - 可自由勾選行政區比較長期趨勢
+
+### 3. 使用 Docker
+
+專案提供 `python/Dockerfile`（資料管線）、`dashboard/Dockerfile`（儀表板）與整合用的 `docker-compose.yml`，兩個容器透過掛載本機 `data/` 目錄交換資料。
+
+```bash
+cd house_price
+
+# 執行資料管線（一次性任務，跑完即結束）
+docker compose run --rm pipeline               # 首次執行：抓全部季別
+docker compose run --rm pipeline --latest 4    # 例行更新：只抓最近 4 季
+
+# 啟動儀表板（背景常駐）
+docker compose up -d dashboard
+```
+
+開啟 http://localhost:3000 查看儀表板。若要更新資料，重新執行 `docker compose run --rm pipeline` 後重新整理頁面即可（儀表板每次請求都會讀取最新的 `trends.json`，不需重啟容器）。
 
 ## 資料更新
 

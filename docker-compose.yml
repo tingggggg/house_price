@@ -1,0 +1,18 @@
+services:
+  pipeline:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+    volumes:
+      - ./data:/app/data
+    # 不帶參數 = 抓全部季別；例行更新可加參數，如 --latest 4
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data:ro
+    restart: unless-stopped
