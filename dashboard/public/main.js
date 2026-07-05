@@ -16,12 +16,43 @@ function renderCards(trends) {
   `;
 }
 
+// 滾輪縮放：控制圖表 X 軸顯示的月份區間，右側永遠固定在最新月份（labels 最後一筆）。
+function attachWheelZoom(canvas, labels, getChart, rangeLabelEl, { minWindow = 6 } = {}) {
+  let visibleCount = labels.length;
+
+  function apply() {
+    const chart = getChart();
+    if (!chart) return;
+    const endIdx = labels.length - 1;
+    const startIdx = Math.max(0, labels.length - visibleCount);
+    chart.options.scales.x.min = labels[startIdx];
+    chart.options.scales.x.max = labels[endIdx];
+    chart.update('none');
+    if (rangeLabelEl) {
+      rangeLabelEl.textContent = visibleCount >= labels.length
+        ? `完整區間 ${labels[startIdx]} ~ ${labels[endIdx]}`
+        : `近 ${visibleCount} 個月（${labels[startIdx]} ~ ${labels[endIdx]}）`;
+    }
+  }
+
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 0.85 : 1 / 0.85;
+    visibleCount = Math.round(Math.min(labels.length, Math.max(minWindow, visibleCount * factor)));
+    apply();
+  }, { passive: false });
+
+  return { apply };
+}
+
 function renderCityChart(trends) {
   const overview = trends.city_overview;
-  new Chart(document.getElementById('cityChart'), {
+  const labels = overview.map(r => r.month);
+  const canvas = document.getElementById('cityChart');
+  const chart = new Chart(canvas, {
     type: 'line',
     data: {
-      labels: overview.map(r => r.month),
+      labels,
       datasets: [{
         label: '全市每坪均價（元）',
         data: overview.map(r => r.avg_unit_price_ping),
@@ -41,6 +72,9 @@ function renderCityChart(trends) {
       plugins: { legend: { labels: { color: '#e2e8f0' } } },
     },
   });
+
+  const zoom = attachWheelZoom(canvas, labels, () => chart, document.getElementById('city-chart-range'));
+  zoom.apply();
 }
 
 function renderRankingChart(trends) {
@@ -100,6 +134,7 @@ function renderDistrictSection(trends) {
   let chart = null;
 
   const labels = trends.city_overview.map(r => r.month);
+  const zoom = attachWheelZoom(canvas, labels, () => chart, document.getElementById('district-chart-range'));
 
   function buildChart() {
     const selectedList = districts.filter(d => selected.has(d));
@@ -130,6 +165,7 @@ function renderDistrictSection(trends) {
         plugins: { legend: { labels: { color: '#e2e8f0' } } },
       },
     });
+    zoom.apply();
   }
 
   function syncUI() {

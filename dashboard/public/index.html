@@ -18,6 +18,7 @@
 
   <section class="panel">
     <h2>全市房價趨勢（每坪單價，元）</h2>
+    <p class="chart-hint">滑鼠移到圖上滾動可縮放時間範圍（近期 ↔ 長期），右側永遠固定為最新月份 — <span id="city-chart-range"></span></p>
     <canvas id="cityChart" height="90"></canvas>
   </section>
 
@@ -42,6 +43,7 @@
       </div>
       <div class="chart-wrap">
         <div class="district-picker" id="district-picker"></div>
+        <p class="chart-hint">滾輪縮放時間範圍，右側固定為最新月份 — <span id="district-chart-range"></span></p>
         <canvas id="districtChart" height="170"></canvas>
       </div>
     </div>
