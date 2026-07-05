@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台中市房價趨勢儀表板</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+  <header>
+    <h1>台中市房價趨勢儀表板</h1>
+    <p class="subtitle">資料來源：內政部不動產交易實價登錄開放資料（僅計入含建物之買賣案件）</p>
+  </header>
+
+  <section class="cards" id="summary-cards"></section>
+
+  <section class="panel">
+    <h2>全市房價趨勢（每坪單價，元）</h2>
+    <canvas id="cityChart" height="90"></canvas>
+  </section>
+
+  <section class="panel">
+    <h2>各行政區近期房價排行（近三個月中位數，須達 5 筆以上交易）</h2>
+    <canvas id="rankingChart" height="140"></canvas>
+  </section>
+
+  <section class="panel">
+    <h2>行政區趨勢比較</h2>
+    <div class="district-picker" id="district-picker"></div>
+    <canvas id="districtChart" height="100"></canvas>
+  </section>
+
+  <footer>
+    <span id="updated-at"></span>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
